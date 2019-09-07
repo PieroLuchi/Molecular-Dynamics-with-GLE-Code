@@ -11,7 +11,7 @@ using namespace std;
 // VARIABILI GLOBALI
 
 float dt=0.002;
-int niter=1000;
+int niter=5000;
 
 float limit=0.8;
 int nstout=500;
@@ -66,9 +66,9 @@ float force_z[1001];
 
 /*--LE----*/
 int LD=0;
-float gamma=0.8;
+float gammas=0.8;
 
-float par_LE= sqrt(2*kB*0.000001*T*m*gamma*0.86/dt);
+float par_LE= sqrt(2*kB*0.000001*T*m*gammas*0.86/dt);
 float R1;
 float R2;
 float R3;
@@ -127,6 +127,7 @@ for(int part=0;part<num_atom;part++){
     vz[part]=vhlfz[part];
 
 }
+return 0;
 }
 
 void load_data(){
@@ -476,6 +477,9 @@ find_neighbors_pbc();
     int volte_qui=0;
     float T_med_ist[10]={0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
+    float inv_dt=1.0/dt;
+    float inv_m=1.0/m;
+
         int count_nstlist=1;
         int count_temp=1;
         int count_nstout=1;
@@ -522,52 +526,67 @@ find_neighbors_pbc();
 
         /**Velocity Verlet Integrator**/
 if (GLE==0){
+
+        if(LD==0){
+
+                float den=1/(1+dt*0.5*zeta_t);
+
            for(int na=0;na<num_atom;na++){
 
-                if(LD==0){
+
                     if(t>1){
 
-                    vx[na]=(vhlfx[na]+0.5*force_x[na]*dt/m)/(1+dt/2*zeta_t);
-                    vy[na]=(vhlfy[na]+0.5*force_y[na]*dt/m)/(1+dt/2*zeta_t);
-                    vz[na]=(vhlfz[na]+0.5*force_z[na]*dt/m)/(1+dt/2*zeta_t);
+                    vx[na]=(vhlfx[na]+0.5*force_x[na]*dt*inv_m)*den;
+                    vy[na]=(vhlfy[na]+0.5*force_y[na]*dt*inv_m)*den;
+                    vz[na]=(vhlfz[na]+0.5*force_z[na]*dt*inv_m)*den;
                     }
 
-                 vhlfx[na]=vx[na]+0.5*force_x[na]*dt/m-zeta_t*vx[na]*dt/2;
-                 vhlfy[na]=vy[na]+0.5*force_y[na]*dt/m-zeta_t*vy[na]*dt/2;
-                 vhlfz[na]=vz[na]+0.5*force_z[na]*dt/m-zeta_t*vz[na]*dt/2;
-                    }
-
-                    if(LD==1){
-                            And=0;
-
-                             R1=normalRandom();
-                             R2=normalRandom();
-                             R3=normalRandom();
-
-                        if(t>1){
-
-                    vx[na]=(vhlfx[na]+0.5*(force_x[na]+par_LE*R1)*dt/m)/(1+dt/(2)*gamma);
-                    vy[na]=(vhlfy[na]+0.5*(force_y[na]+par_LE*R2)*dt/m)/(1+dt/(2)*gamma);
-                    vz[na]=(vhlfz[na]+0.5*(force_z[na]+par_LE*R3)*dt/m)/(1+dt/(2)*gamma);
-                    }
-
-                 vhlfx[na]=vx[na]+0.5*(force_x[na]-gamma*m*vx[na]+par_LE*R1)*dt/m;
-                 vhlfy[na]=vy[na]+0.5*(force_y[na]-gamma*m*vy[na]+par_LE*R2)*dt/m;
-                 vhlfz[na]=vz[na]+0.5*(force_z[na]-gamma*m*vz[na]+par_LE*R3)*dt/m;
-
-                    }
+                 vhlfx[na]=vx[na]+0.5*force_x[na]*dt*inv_m-zeta_t*vx[na]*dt*0.5;
+                 vhlfy[na]=vy[na]+0.5*force_y[na]*dt*inv_m-zeta_t*vy[na]*dt*0.5;
+                 vhlfz[na]=vz[na]+0.5*force_z[na]*dt*inv_m-zeta_t*vz[na]*dt*0.5;
 
                  rx[na]=rx[na]+vhlfx[na]*dt;
                  ry[na]=ry[na]+vhlfy[na]*dt;
                  rz[na]=rz[na]+vhlfz[na]*dt;
 
                        PBC(na);
-                       //HWBC(na);
+                    }
+        }
+
+       if(LD==1){
+                And=0;
+                float den=1/(1+dt*0.5*gammas);
+
+         for(int na=0;na<num_atom;na++){
 
 
+                 R1=normalRandom();
+                 R2=normalRandom();
+                 R3=normalRandom();
 
-           }
+                        if(t>1){
+
+                    vx[na]=(vhlfx[na]+0.5*(force_x[na]+par_LE*R1)*dt*inv_m)*den;
+                    vy[na]=(vhlfy[na]+0.5*(force_y[na]+par_LE*R2)*dt*inv_m)*den;
+                    vz[na]=(vhlfz[na]+0.5*(force_z[na]+par_LE*R3)*dt*inv_m)*den;
+                    }
+
+                   vhlfx[na]=vx[na]+0.5*(force_x[na]-gammas*m*vx[na]+par_LE*R1)*dt*inv_m;
+                   vhlfy[na]=vy[na]+0.5*(force_y[na]-gammas*m*vy[na]+par_LE*R2)*dt*inv_m;
+                   vhlfz[na]=vz[na]+0.5*(force_z[na]-gammas*m*vz[na]+par_LE*R3)*dt*inv_m;
+
+
+                    rx[na]=rx[na]+vhlfx[na]*dt;
+                    ry[na]=ry[na]+vhlfy[na]*dt;
+                    rz[na]=rz[na]+vhlfz[na]*dt;
+
+                       PBC(na);
+                 }
+              }
+
 }else if (GLE==1){
+
+    float den=1/(1+Kx[0]*dt*dt*0.25*inv_m);
 
             for(int na=0;na<num_atom;na++){
                         /** Noise**/
@@ -589,22 +608,20 @@ if (GLE==0){
 
                     if(t>1){
 
-                    vx[na]=(vhlfx[na]+0.5*dt/m*(force_x[na]-fDx+par_GLE*noise_x))/(1+Kx[0]*dt*dt/(4*m));
-                    vy[na]=(vhlfy[na]+0.5*dt/m*(force_y[na]-fDy+par_GLE*noise_y))/(1+Ky[0]*dt*dt/(4*m));
-                    vz[na]=(vhlfz[na]+0.5*dt/m*(force_z[na]-fDz+par_GLE*noise_z))/(1+Kz[0]*dt*dt/(4*m));
+                    vx[na]=(vhlfx[na]+0.5*dt*inv_m*(force_x[na]-fDx+par_GLE*noise_x))*den;
+                    vy[na]=(vhlfy[na]+0.5*dt*inv_m*(force_y[na]-fDy+par_GLE*noise_y))*den;
+                    vz[na]=(vhlfz[na]+0.5*dt*inv_m*(force_z[na]-fDz+par_GLE*noise_z))*den;
                     }
 
-                 vhlfx[na]=vx[na]+0.5*dt/m*(force_x[na]-0.5*Kx[0]*vx[na]*dt-fDx+par_GLE*noise_x);
-                 vhlfy[na]=vy[na]+0.5*dt/m*(force_y[na]-0.5*Ky[0]*vy[na]*dt-fDy+par_GLE*noise_y);
-                 vhlfz[na]=vz[na]+0.5*dt/m*(force_z[na]-0.5*Kz[0]*vz[na]*dt-fDz+par_GLE*noise_z);
+                 vhlfx[na]=vx[na]+0.5*dt*inv_m*(force_x[na]-0.5*Kx[0]*vx[na]*dt-fDx+par_GLE*noise_x);
+                 vhlfy[na]=vy[na]+0.5*dt*inv_m*(force_y[na]-0.5*Ky[0]*vy[na]*dt-fDy+par_GLE*noise_y);
+                 vhlfz[na]=vz[na]+0.5*dt*inv_m*(force_z[na]-0.5*Kz[0]*vz[na]*dt-fDz+par_GLE*noise_z);
 
                  rx[na]=rx[na]+vhlfx[na]*dt;
                  ry[na]=ry[na]+vhlfy[na]*dt;
                  rz[na]=rz[na]+vhlfz[na]*dt;
 
                        PBC(na);
-
-
 
            }
 
@@ -660,19 +677,15 @@ if (GLE==0){
             cout<<"Temperatura istantanea=" << Ti<<endl;
 
 
-            for(int s=10-1;s>0;s--){
-                T_med_ist[s]=T_med_ist[s-1];
-               }
-               T_med_ist[0]=Ti;
-
-
-
-
-
-
-          volte_qui=volte_qui+1;
-            Temp_media=Temp_media+Ti;
-            cout<< " Temperatura media istan="<<sum(T_med_ist,10)/min(10,volte_qui)<<endl;
+//            for(int s=10-1;s>0;s--){
+//                T_med_ist[s]=T_med_ist[s-1];
+//               }
+//               T_med_ist[0]=Ti;
+//
+//
+//          volte_qui=volte_qui+1;
+//            Temp_media=Temp_media+Ti;
+//            cout<< " Temperatura media istan="<<sum(T_med_ist,10)/min(10,volte_qui)<<endl;
 
 //if(volte_qui>=10){
 //                  float modifica=-0.0005*(Temp_media/volte_qui-T);
