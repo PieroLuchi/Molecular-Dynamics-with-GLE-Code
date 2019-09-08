@@ -4,17 +4,18 @@
 #include <fstream> // per scrivere e leggere .txt
 #include <cstdlib>
 #include <ctime>
-#include<stdio.h>
+#include <stdio.h>
+#include <omp.h>
 
 using namespace std;
 
 // VARIABILI GLOBALI
 
 float dt=0.002;
-int niter=5000;
+int niter=1000;
 
 float limit=0.8;
-int nstout=500;
+int nstout=100;
 int nstlist=20;
 
 // termostati
@@ -75,8 +76,8 @@ float R3;
 
 
 /*----GLE-------*/
-int GLE=0;
-float par_GLE=0.39;//sqrt(T*kB*0.000001/m);//0.4;//sqrt(kB*T)*5.5;//sqrt(2*kB*0.000001*T*m*0.86/dt);
+int GLE=1;
+float par_GLE=0.32;//sqrt(T*kB*0.000001/m);//0.32;//sqrt(kB*T)*5.5;//sqrt(2*kB*0.000001*T*m*0.86/dt);
 int M=300;
 
         float fDx=0;
@@ -86,7 +87,9 @@ int M=300;
         float noise_x=0;
         float noise_y=0;
         float noise_z=0;
-        float xi[300];
+        float xi_x[300];
+        float xi_y[300];
+        float xi_z[300];
 
         float Kx[300];
         float Ky[300];
@@ -145,10 +148,6 @@ ifstream force("Ff_fm_NVE.txt");
 
         for(int ct=0;ct<500;ct++){
             force>>Ff[ct];
-
-
-
-
     }
 
     IC.close();
@@ -163,7 +162,10 @@ void load_data_GLE(){
         for(int ct=0;ct<M;ct++){
             K_file>>Kx[ct]>>Ky[ct]>>Kz[ct];
             L_file>>Lx[ct]>>Ly[ct]>>Lz[ct];
-            xi[ct]=normalRandom();//*0.00013971;
+
+            xi_x[ct]=normalRandom();//*0.00013971;
+            xi_y[ct]=normalRandom();
+            xi_z[ct]=normalRandom();
 
 //            Kx[ct]=-1*Kx[ct];
 //           Ky[ct]=-1*Ky[ct];
@@ -323,6 +325,14 @@ void PBC(int na){
                     }
 }
 
+void PBCs(int na, float r[1001]){
+                    if(r[na]>bound_up){
+                        r[na]=bound_down;
+                    }else if( r[na]<bound_down){
+                        r[na]=bound_up;
+                    }
+}
+
 void HWBC(int na){
 
                     if(rx[na]>bound_up){
@@ -392,15 +402,30 @@ somma_vel=0;
     zeta_t=zeta_hlf_t+dt/(2*Q)*(Kin-magic*kB*T);
 }
 
-void find_noise(){
-    noise_x=0;
-    noise_y=0;
-    noise_z=0;
+//void find_noise(){
+//    noise_x=0;
+//    noise_y=0;
+//    noise_z=0;
+//
+//   for(int s=0;s<M;s++){
+//    noise_x=noise_x+Lx[s]*xi[s];
+//    noise_y=noise_y+Ly[s]*xi[s];
+//    noise_z=noise_z+Lz[s]*xi[s];
+//   }
+//
+//   for(int s=M-1;s>0;s--){
+//    xi[s]=xi[s-1];
+//   }
+//   xi[0]=normalRandom;//*0.00013971;
+//
+//}
+
+float find_noise_s(float xi[300],float L[300]){
+    float noise=0;
 
    for(int s=0;s<M;s++){
-    noise_x=noise_x+Lx[s]*xi[s];
-    noise_y=noise_y+Ly[s]*xi[s];
-    noise_z=noise_z+Lz[s]*xi[s];
+    noise=noise+L[s]*xi[s];
+
    }
 
    for(int s=M-1;s>0;s--){
@@ -408,8 +433,7 @@ void find_noise(){
    }
    xi[0]=normalRandom();//*0.00013971;
 
-
-
+   return noise;
 }
 
 float sum(float vett[],int leng){
@@ -436,14 +460,21 @@ cout << par_GLE <<endl;
 /** INIZIALIZZO VICINI**/
 find_neighbors_pbc();
 
-
 /** GLE**/
-        if(GLE==1){
+        //if(GLE==1){
           load_data_GLE();
           And=0;
+         float denx=1/(1+Kx[0]*dt*dt*0.25/m);
+         float deny=1/(1+Ky[0]*dt*dt*0.25/m);
+         float denz=1/(1+Kz[0]*dt*dt*0.25/m);
 
+     //   }
 
-        }
+/**OpenMP**/
+#ifdef _OPENMP
+cout<<"PARALLEL!"<<endl;
+#endif // _OPENMP
+
 
 
 //        find_forces_pbc();
@@ -472,10 +503,9 @@ find_neighbors_pbc();
 
 /**INTEGRAZIONE EQUAZIONI DEL MOTO*/
 
-    /*contatori vari*/
+    /*contatori e varabili vari*/
 
     int volte_qui=0;
-    float T_med_ist[10]={0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
     float inv_dt=1.0/dt;
     float inv_m=1.0/m;
@@ -586,31 +616,120 @@ if (GLE==0){
 
 }else if (GLE==1){
 
-    float den=1/(1+Kx[0]*dt*dt*0.25*inv_m);
+
+
+
+#ifdef _OPENMP
+
+    #pragma omp  parallel sections
+    {
+    #pragma omp  section
+    {
+            for( int na=0;na<num_atom;na++){
+                        /** Noise**/
+                         //noise_x=find_noise_s(xi_x, Lx);
+                         noise_x=normalRandom();
+
+                        /**Memory Kernel**/
+                            fDx=0;
+                                for( int jj=1; jj<min(M,t-1);jj++){
+                                      int ll=(jj-1)*num_atom;
+                                        fDx=fDx+dt*Kx[jj]*vx_mem[na+ll];
+                                    }
+                    if(t>1){
+                     vx[na]=(vhlfx[na]+0.5*dt*inv_m*(force_x[na]-fDx+par_GLE*noise_x))*denx;
+                    }
+                     vhlfx[na]=vx[na]+0.5*dt*inv_m*(force_x[na]-0.5*Kx[0]*vx[na]*dt-fDx+par_GLE*noise_x);
+
+                     rx[na]=rx[na]+vhlfx[na]*dt;
+
+                       PBCs(na,rx);
+           }
+    }
+
+    #pragma omp section
+    {
+            for( int na=0;na<num_atom;na++){
+                        /** Noise**/
+//                         noise_y=find_noise_s(xi_y, Ly);
+                         noise_y=normalRandom();
+
+
+                        /**Memory Kernel**/
+                           fDy=0;
+                            for( int jj=1; jj<min(M,t-1);jj++){
+                                     int ll=(jj-1)*num_atom;
+                                        fDy=fDy+dt*Ky[jj]*vy_mem[na+ll];
+                                    }
+                    if(t>1){
+                    vy[na]=(vhlfy[na]+0.5*dt*inv_m*(force_y[na]-fDy+par_GLE*noise_y))*deny;
+                    }
+                 vhlfy[na]=vy[na]+0.5*dt*inv_m*(force_y[na]-0.5*Ky[0]*vy[na]*dt-fDy+par_GLE*noise_y);
+
+                 ry[na]=ry[na]+vhlfy[na]*dt;
+
+                    PBCs(na,ry);
+           }
+    }
+
+    #pragma omp section
+    {
+            for( int na=0;na<num_atom;na++){
+                        /** Noise**/
+//                        noise_z=find_noise_s(xi_z, Lz);
+                            noise_z=normalRandom();
+
+
+                        /**Memory Kernel**/
+                            fDz=0;
+                                for( int jj=1; jj<min(M,t-1);jj++){
+                                     int ll=(jj-1)*num_atom;
+                                    fDz=fDz+dt*Kz[jj]*vz_mem[na+ll];
+                                    }
+                    if(t>1){
+                    vz[na]=(vhlfz[na]+0.5*dt*inv_m*(force_z[na]-fDz+par_GLE*noise_z))*denz;
+                    }
+                    vhlfz[na]=vz[na]+0.5*dt*inv_m*(force_z[na]-0.5*Kz[0]*vz[na]*dt-fDz+par_GLE*noise_z);
+
+                   rz[na]=rz[na]+vhlfz[na]*dt;
+
+                       PBCs(na,rz);
+           }
+    }
+}
+
+#endif // _OPENMP
+
+#ifndef _OPENMP
 
             for(int na=0;na<num_atom;na++){
                         /** Noise**/
-                         find_noise();
+//                         noise_x=find_noise_s(xi_x,Lx);
+//                         noise_y=find_noise_s(xi_y,Ly);
+//                         noise_z=find_noise_s(xi_z,Lz);
 
+                         noise_x=normalRandom();
+                         noise_y=normalRandom();
+                         noise_z=normalRandom();
 
                         /**Memory Kernel**/
                             fDx=0;
                             fDy=0;
                             fDz=0;
+
+
+
                                 for(int jj=1; jj<min(M,t-1);jj++){
                                      int ll=(jj-1)*num_atom;
-
                                         fDx=fDx+dt*Kx[jj]*vx_mem[na+ll];
                                         fDy=fDy+dt*Ky[jj]*vy_mem[na+ll];
                                         fDz=fDz+dt*Kz[jj]*vz_mem[na+ll];
-
-                                }
+                                    }
 
                     if(t>1){
-
-                    vx[na]=(vhlfx[na]+0.5*dt*inv_m*(force_x[na]-fDx+par_GLE*noise_x))*den;
-                    vy[na]=(vhlfy[na]+0.5*dt*inv_m*(force_y[na]-fDy+par_GLE*noise_y))*den;
-                    vz[na]=(vhlfz[na]+0.5*dt*inv_m*(force_z[na]-fDz+par_GLE*noise_z))*den;
+                    vx[na]=(vhlfx[na]+0.5*dt*inv_m*(force_x[na]-fDx+par_GLE*noise_x))*denx;
+                    vy[na]=(vhlfy[na]+0.5*dt*inv_m*(force_y[na]-fDy+par_GLE*noise_y))*deny;
+                    vz[na]=(vhlfz[na]+0.5*dt*inv_m*(force_z[na]-fDz+par_GLE*noise_z))*denz;
                     }
 
                  vhlfx[na]=vx[na]+0.5*dt*inv_m*(force_x[na]-0.5*Kx[0]*vx[na]*dt-fDx+par_GLE*noise_x);
@@ -621,30 +740,32 @@ if (GLE==0){
                  ry[na]=ry[na]+vhlfy[na]*dt;
                  rz[na]=rz[na]+vhlfz[na]*dt;
 
+
                        PBC(na);
 
            }
 
-}
+
+#endif // _OPENMP
+
+
+
+  }
+
 
                /**Storage velocity for GLE**/
               if(GLE==1){
 
-
                     for(int ct=(num_atom*M)-1; ct>=num_atom;ct--){
                        vx_mem[ct]=vx_mem[ct-num_atom];
-                       vy_mem[ct]=vy_mem[ct-num_atom];
-                       vz_mem[ct]=vz_mem[ct-num_atom];
-
+                        vy_mem[ct]=vy_mem[ct-num_atom];
+                        vz_mem[ct]=vz_mem[ct-num_atom];
                     }
-
-
 
                     for(int ct=0;ct<num_atom;ct++){
                        vx_mem[ct]=vhlfx[ct];
-                       vy_mem[ct]=vhlfy[ct];
-                       vz_mem[ct]=vhlfz[ct];
-
+                        vy_mem[ct]=vhlfy[ct];
+                        vz_mem[ct]=vhlfz[ct];
                     }
 
 //                    for(int g=0;g<num_atom*2;g++){
@@ -683,9 +804,9 @@ if (GLE==0){
 //               T_med_ist[0]=Ti;
 //
 //
-//          volte_qui=volte_qui+1;
-//            Temp_media=Temp_media+Ti;
-//            cout<< " Temperatura media istan="<<sum(T_med_ist,10)/min(10,volte_qui)<<endl;
+          volte_qui=volte_qui+1;
+            Temp_media=Temp_media+Ti;
+           cout<< " Temperatura media istan="<<Temp_media/volte_qui<<endl;
 
 //if(volte_qui>=10){
 //                  float modifica=-0.0005*(Temp_media/volte_qui-T);
