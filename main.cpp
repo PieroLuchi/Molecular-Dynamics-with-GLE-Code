@@ -14,7 +14,7 @@ float dt=0.002;
 int niter=30000;
 
 float limit=0.8;
-int nstout=500;
+int nstout=250;
 int nstlist=20;
 
 // termostati
@@ -76,7 +76,7 @@ float R3;
 
 /*----GLE-------*/
 int GLE=1;
-float par_GLE=sqrt(T*kB*0.000001/m);//0.4;//sqrt(kB*T)*5.5;//sqrt(2*kB*0.000001*T*m*0.86/dt);
+float par_GLE=0.39;//sqrt(T*kB*0.000001/m);//0.4;//sqrt(kB*T)*5.5;//sqrt(2*kB*0.000001*T*m*0.86/dt);
 int M=300;
 
         float fDx=0;
@@ -86,7 +86,9 @@ int M=300;
         float noise_x=0;
         float noise_y=0;
         float noise_z=0;
-        float xi[300];
+        float xi_x[300];
+        float xi_y[300];
+        float xi_z[300];
 
         float Kx[300];
         float Ky[300];
@@ -157,14 +159,15 @@ ifstream force("Ff_fm_NVE.txt");
 }
 
 void load_data_GLE(){
-        ifstream K_file("K3000_M300.txt");
-        ifstream L_file("L3000_M300.txt");
+        ifstream K_file("K6000_M300.txt");
+        ifstream L_file("L6000_M300.txt");
 
         for(int ct=0;ct<M;ct++){
             K_file>>Kx[ct]>>Ky[ct]>>Kz[ct];
             L_file>>Lx[ct]>>Ly[ct]>>Lz[ct];
-            xi[ct]=normalRandom();//*0.00013971;
-
+            xi_x[ct]=normalRandom();//*0.00013971;
+            xi_y[ct]=normalRandom();
+            xi_z[ct]=normalRandom();
 
         }
 
@@ -392,15 +395,19 @@ void find_noise(){
     noise_z=0;
 
    for(int s=0;s<M;s++){
-    noise_x=noise_x+Lx[s]*xi[s];
-    noise_y=noise_y+Ly[s]*xi[s];
-    noise_z=noise_z+Lz[s]*xi[s];
+    noise_x=noise_x+Lx[s]*xi_x[s];
+    noise_y=noise_y+Ly[s]*xi_y[s];
+    noise_z=noise_z+Lz[s]*xi_z[s];
    }
 
    for(int s=M-1;s>0;s--){
-    xi[s]=xi[s-1];
+    xi_x[s]=xi_x[s-1];
+    xi_y[s]=xi_y[s-1];
+    xi_z[s]=xi_z[s-1];
    }
-   xi[0]=normalRandom();//*0.00013971;
+   xi_x[0]=normalRandom();//*0.00013971;
+   xi_y[0]=normalRandom();
+   xi_z[0]=normalRandom();
 
 
 
@@ -419,10 +426,10 @@ int main()
 {
  /** CARICAMENTO POSIZIONI E VELOCITà INIZIALI E FORZA**/
   load_data();
-  andersen();
 
 
-            cout << temperatura(vhlfx,vhlfy,vhlfz,kB,num_atom,m)<<endl;
+
+
 
 
 
@@ -431,7 +438,8 @@ find_neighbors_pbc();
 
 /** Inizializzo seed generatore casuale*/
 srand(time(NULL));
-
+andersen();
+cout << temperatura(vhlfx,vhlfy,vhlfz,kB,num_atom,m)<<endl;
 
 /** GLE**/
         if(GLE==1){
@@ -583,7 +591,9 @@ if (GLE==0){
 
 }else if (GLE==1){
 
-    float den=1/(1+Kx[0]*dt*dt*0.25*inv_m);
+    float denx=1/(1+Kx[0]*dt*dt*0.25*inv_m);
+    float deny=1/(1+Ky[0]*dt*dt*0.25*inv_m);
+    float denz=1/(1+Kz[0]*dt*dt*0.25*inv_m);
 
             for(int na=0;na<num_atom;na++){
                         /** Noise**/
@@ -605,9 +615,9 @@ if (GLE==0){
 
                     if(t>1){
 
-                    vx[na]=(vhlfx[na]+0.5*dt*inv_m*(force_x[na]-fDx+par_GLE*noise_x))*den;
-                    vy[na]=(vhlfy[na]+0.5*dt*inv_m*(force_y[na]-fDy+par_GLE*noise_y))*den;
-                    vz[na]=(vhlfz[na]+0.5*dt*inv_m*(force_z[na]-fDz+par_GLE*noise_z))*den;
+                    vx[na]=(vhlfx[na]+0.5*dt*inv_m*(force_x[na]-fDx+par_GLE*noise_x))*denx;
+                    vy[na]=(vhlfy[na]+0.5*dt*inv_m*(force_y[na]-fDy+par_GLE*noise_y))*deny;
+                    vz[na]=(vhlfz[na]+0.5*dt*inv_m*(force_z[na]-fDz+par_GLE*noise_z))*denz;
                     }
 
                  vhlfx[na]=vx[na]+0.5*dt*inv_m*(force_x[na]-0.5*Kx[0]*vx[na]*dt-fDx+par_GLE*noise_x);
@@ -680,9 +690,9 @@ if (GLE==0){
 //               T_med_ist[0]=Ti;
 //
 //
-//          volte_qui=volte_qui+1;
+          volte_qui=volte_qui+1;
            Temp_media=Temp_media+Ti;
-//            cout<< " Temperatura media istan="<<sum(T_med_ist,10)/min(10,volte_qui)<<endl;
+           cout<< " Temperatura media ="<<Temp_media/volte_qui<<endl;
 
 //if(volte_qui>=10){
 //                  float modifica=-0.0005*(Temp_media/volte_qui-T);
