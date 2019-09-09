@@ -11,7 +11,7 @@ using namespace std;
 // VARIABILI GLOBALI
 
 float dt=0.002;
-int niter=5000;
+int niter=30000;
 
 float limit=0.8;
 int nstout=500;
@@ -75,8 +75,8 @@ float R3;
 
 
 /*----GLE-------*/
-int GLE=0;
-float par_GLE=0.39;//sqrt(T*kB*0.000001/m);//0.4;//sqrt(kB*T)*5.5;//sqrt(2*kB*0.000001*T*m*0.86/dt);
+int GLE=1;
+float par_GLE=sqrt(T*kB*0.000001/m);//0.4;//sqrt(kB*T)*5.5;//sqrt(2*kB*0.000001*T*m*0.86/dt);
 int M=300;
 
         float fDx=0;
@@ -157,21 +157,15 @@ ifstream force("Ff_fm_NVE.txt");
 }
 
 void load_data_GLE(){
-        ifstream K_file("KKK.txt");
-        ifstream L_file("LLL.txt");
+        ifstream K_file("K3000_M300.txt");
+        ifstream L_file("L3000_M300.txt");
 
         for(int ct=0;ct<M;ct++){
             K_file>>Kx[ct]>>Ky[ct]>>Kz[ct];
             L_file>>Lx[ct]>>Ly[ct]>>Lz[ct];
             xi[ct]=normalRandom();//*0.00013971;
 
-//            Kx[ct]=-1*Kx[ct];
-//           Ky[ct]=-1*Ky[ct];
-//           Kz[ct]=-1*Kz[ct];
-////
-//           Lx[ct]=Lx[ct]*kB*T;
-//           Ly[ct]=Ly[ct]*kB*T;
-//           Lz[ct]=Lz[ct]*kB*T;
+
         }
 
         K_file.close();
@@ -429,18 +423,21 @@ int main()
 
 
             cout << temperatura(vhlfx,vhlfy,vhlfz,kB,num_atom,m)<<endl;
-cout << par_GLE <<endl;
 
 
 
 /** INIZIALIZZO VICINI**/
 find_neighbors_pbc();
 
+/** Inizializzo seed generatore casuale*/
+srand(time(NULL));
+
 
 /** GLE**/
         if(GLE==1){
           load_data_GLE();
           And=0;
+         cout << par_GLE <<endl;
 
 
         }
@@ -590,7 +587,7 @@ if (GLE==0){
 
             for(int na=0;na<num_atom;na++){
                         /** Noise**/
-                         find_noise();
+                            find_noise();
 
 
                         /**Memory Kernel**/
@@ -684,7 +681,7 @@ if (GLE==0){
 //
 //
 //          volte_qui=volte_qui+1;
-//            Temp_media=Temp_media+Ti;
+           Temp_media=Temp_media+Ti;
 //            cout<< " Temperatura media istan="<<sum(T_med_ist,10)/min(10,volte_qui)<<endl;
 
 //if(volte_qui>=10){
