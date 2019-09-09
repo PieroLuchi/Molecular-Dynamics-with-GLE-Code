@@ -11,10 +11,10 @@ using namespace std;
 // VARIABILI GLOBALI
 
 float dt=0.002;
-int niter=30000;
+int niter=10000;
 
 float limit=0.8;
-int nstout=250;
+int nstout=500;
 int nstlist=20;
 
 // termostati
@@ -76,7 +76,7 @@ float R3;
 
 /*----GLE-------*/
 int GLE=1;
-float par_GLE=0.39;//sqrt(T*kB*0.000001/m);//0.4;//sqrt(kB*T)*5.5;//sqrt(2*kB*0.000001*T*m*0.86/dt);
+float par_GLE=sqrt(kB*T*0.000001);//sqrt(T*kB*0.000001/m);//0.4;//sqrt(kB*T)*5.5;//sqrt(2*kB*0.000001*T*m*0.86/dt);
 int M=300;
 
         float fDx=0;
@@ -86,9 +86,10 @@ int M=300;
         float noise_x=0;
         float noise_y=0;
         float noise_z=0;
-        float xi_x[300];
-        float xi_y[300];
-        float xi_z[300];
+
+        float xi_x[300*1001];
+        float xi_y[300*1001];
+        float xi_z[300*1001];
 
         float Kx[300];
         float Ky[300];
@@ -159,8 +160,8 @@ ifstream force("Ff_fm_NVE.txt");
 }
 
 void load_data_GLE(){
-        ifstream K_file("K6000_M300.txt");
-        ifstream L_file("L6000_M300.txt");
+        ifstream K_file("K750_M300.txt");
+        ifstream L_file("L750_M300.txt");
 
         for(int ct=0;ct<M;ct++){
             K_file>>Kx[ct]>>Ky[ct]>>Kz[ct];
@@ -170,6 +171,14 @@ void load_data_GLE(){
             xi_z[ct]=normalRandom();
 
         }
+
+        for(int ct=0;ct<num_atom;ct++){
+            xi_x[ct]=normalRandom();//*0.00013971;
+            xi_y[ct]=normalRandom();
+            xi_z[ct]=normalRandom();
+
+        }
+
 
         K_file.close();
         L_file.close();
@@ -389,29 +398,31 @@ somma_vel=0;
     zeta_t=zeta_hlf_t+dt/(2*Q)*(Kin-magic*kB*T);
 }
 
-void find_noise(){
-    noise_x=0;
-    noise_y=0;
-    noise_z=0;
+//void find_noise(){
+//    noise_x=0;
+//    noise_y=0;
+//    noise_z=0;
+//
+//   for(int s=0;s<M;s++){
+//    noise_x=noise_x+Lx[s]*xi_x[s];
+//    noise_y=noise_y+Ly[s]*xi_y[s];
+//    noise_z=noise_z+Lz[s]*xi_z[s];
+//   }
+//
+//   for(int s=M-1;s>0;s--){
+//    xi_x[s]=xi_x[s-1];
+//    xi_y[s]=xi_y[s-1];
+//    xi_z[s]=xi_z[s-1];
+//   }
+//   xi_x[0]=normalRandom();//*0.00013971;
+//   xi_y[0]=normalRandom();
+//   xi_z[0]=normalRandom();
+//
+//
+//
+//}
 
-   for(int s=0;s<M;s++){
-    noise_x=noise_x+Lx[s]*xi_x[s];
-    noise_y=noise_y+Ly[s]*xi_y[s];
-    noise_z=noise_z+Lz[s]*xi_z[s];
-   }
 
-   for(int s=M-1;s>0;s--){
-    xi_x[s]=xi_x[s-1];
-    xi_y[s]=xi_y[s-1];
-    xi_z[s]=xi_z[s-1];
-   }
-   xi_x[0]=normalRandom();//*0.00013971;
-   xi_y[0]=normalRandom();
-   xi_z[0]=normalRandom();
-
-
-
-}
 
 float sum(float vett[],int leng){
   float somma=0;
@@ -597,7 +608,17 @@ if (GLE==0){
 
             for(int na=0;na<num_atom;na++){
                         /** Noise**/
-                            find_noise();
+                            //find_noise();
+                             noise_x=0;
+                             noise_y=0;
+                             noise_z=0;
+//                                for(int jj=1; jj<min(M,t-1);jj++){
+//                                     int ll=(jj-1)*num_atom;
+//
+//                                        noise_x=noise_x+Lx[jj]*xi_x[na+ll];
+//                                        noise_y=noise_y+Ly[jj]*xi_y[na+ll];
+//                                        noise_z=noise_z+Lz[jj]*xi_z[na+ll];
+//                                }
 
 
                         /**Memory Kernel**/
@@ -611,7 +632,12 @@ if (GLE==0){
                                         fDy=fDy+dt*Ky[jj]*vy_mem[na+ll];
                                         fDz=fDz+dt*Kz[jj]*vz_mem[na+ll];
 
+                                        noise_x=noise_x+Lx[jj]*xi_x[na+ll];
+                                        noise_y=noise_y+Ly[jj]*xi_y[na+ll];
+                                        noise_z=noise_z+Lz[jj]*xi_z[na+ll];
+
                                 }
+
 
                     if(t>1){
 
@@ -643,14 +669,20 @@ if (GLE==0){
                        vy_mem[ct]=vy_mem[ct-num_atom];
                        vz_mem[ct]=vz_mem[ct-num_atom];
 
+                       xi_x[ct]=xi_x[ct-num_atom];
+                       xi_y[ct]=xi_y[ct-num_atom];
+                       xi_z[ct]=xi_z[ct-num_atom];
+
                     }
-
-
 
                     for(int ct=0;ct<num_atom;ct++){
                        vx_mem[ct]=vhlfx[ct];
                        vy_mem[ct]=vhlfy[ct];
                        vz_mem[ct]=vhlfz[ct];
+
+                       xi_x[ct]=normalRandom();
+                       xi_y[ct]=normalRandom();
+                       xi_z[ct]=normalRandom();
 
                     }
 
