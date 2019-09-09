@@ -5,16 +5,17 @@
 #include <cstdlib>
 #include <ctime>
 #include<stdio.h>
+#include <time.h>
 
 using namespace std;
 
 // VARIABILI GLOBALI
 
 float dt=0.002;
-int niter=5000;
+int niter=1000;
 
 float limit=0.8;
-int nstout=500;
+int nstout=100;
 int nstlist=20;
 
 // termostati
@@ -75,18 +76,20 @@ float R3;
 
 
 /*----GLE-------*/
-int GLE=0;
-float par_GLE=0.39;//sqrt(T*kB*0.000001/m);//0.4;//sqrt(kB*T)*5.5;//sqrt(2*kB*0.000001*T*m*0.86/dt);
+int GLE=1;
+float par_GLE=sqrt(T*kB*0.000001/m);//0.4;//sqrt(kB*T)*5.5;//sqrt(2*kB*0.000001*T*m*0.86/dt);
 int M=300;
 
         float fDx=0;
         float fDy=0;
         float fDz=0;
 
-        float noise_x=0;
-        float noise_y=0;
-        float noise_z=0;
+        float noise_x[1001];
+        float noise_y[1001];
+        float noise_z[1001];
         float xi[300];
+
+
 
         float Kx[300];
         float Ky[300];
@@ -119,12 +122,17 @@ float andersen(){
 
 for(int part=0;part<num_atom;part++){
     vhlfx[part]=normalRandom()*sqrt(kB*T/m*0.86)*0.001; //0.001 è per avere le velocità in nm/ps
-    vhlfy[part]=normalRandom()*sqrt(kB*T/m*0.86)*0.001;
-    vhlfz[part]=normalRandom()*sqrt(kB*T/m*0.86)*0.001;
-
     vx[part]=vhlfx[part];
+
+    vhlfy[part]=normalRandom()*sqrt(kB*T/m*0.86)*0.001;
     vy[part]=vhlfy[part];
+
+    vhlfz[part]=normalRandom()*sqrt(kB*T/m*0.86)*0.001;
     vz[part]=vhlfz[part];
+
+
+
+
 
 }
 return 0;
@@ -157,22 +165,22 @@ ifstream force("Ff_fm_NVE.txt");
 }
 
 void load_data_GLE(){
-        ifstream K_file("KKK.txt");
-        ifstream L_file("LLL.txt");
+        ifstream K_file("K6000_M300.txt");
+        ifstream L_file("L6000_M300.txt");
 
         for(int ct=0;ct<M;ct++){
             K_file>>Kx[ct]>>Ky[ct]>>Kz[ct];
             L_file>>Lx[ct]>>Ly[ct]>>Lz[ct];
             xi[ct]=normalRandom();//*0.00013971;
 
-//            Kx[ct]=-1*Kx[ct];
-//           Ky[ct]=-1*Ky[ct];
-//           Kz[ct]=-1*Kz[ct];
-////
-//           Lx[ct]=Lx[ct]*kB*T;
-//           Ly[ct]=Ly[ct]*kB*T;
-//           Lz[ct]=Lz[ct]*kB*T;
         }
+        for(int ct=0;ct<num_atom;ct++){
+
+            noise_x[ct]=normalRandom();//*0.00013971;
+            noise_y[ct]=normalRandom();
+            noise_z[ct]=normalRandom();
+        }
+
 
         K_file.close();
         L_file.close();
@@ -392,22 +400,36 @@ somma_vel=0;
     zeta_t=zeta_hlf_t+dt/(2*Q)*(Kin-magic*kB*T);
 }
 
-void find_noise(){
-    noise_x=0;
-    noise_y=0;
-    noise_z=0;
-
-   for(int s=0;s<M;s++){
-    noise_x=noise_x+Lx[s]*xi[s];
-    noise_y=noise_y+Ly[s]*xi[s];
-    noise_z=noise_z+Lz[s]*xi[s];
-   }
-
+void WN(){
    for(int s=M-1;s>0;s--){
     xi[s]=xi[s-1];
    }
    xi[0]=normalRandom();//*0.00013971;
+}
 
+void noise_new_method(){
+
+
+for(int s=num_atom-1;s>0;s--){
+    noise_x[s]=noise_x[s-1];
+    noise_y[s]=noise_y[s-1];
+    noise_z[s]=noise_z[s-1];
+
+   }
+
+
+float rux=0;
+float ruy=0;
+float ruz=0;
+
+   for(int s=0;s<M;s++){
+   rux =rux+Lx[s]*xi[s];
+   ruy =ruy+Ly[s]*xi[s];
+   ruz =ruz+Lz[s]*xi[s];
+   }
+   noise_x[0]=rux;
+   noise_y[0]=ruy;
+   noise_z[0]=ruz;
 
 
 }
@@ -428,7 +450,7 @@ int main()
   andersen();
 
 
-            cout << temperatura(vhlfx,vhlfy,vhlfz,kB,num_atom,m)<<endl;
+cout << temperatura(vhlfx,vhlfy,vhlfz,kB,num_atom,m)<<endl;
 cout << par_GLE <<endl;
 
 
@@ -436,14 +458,28 @@ cout << par_GLE <<endl;
 /** INIZIALIZZO VICINI**/
 find_neighbors_pbc();
 
+/** inizializzo random seed number**/
+
+ srand (time(NULL));
+
+
 
 /** GLE**/
         if(GLE==1){
           load_data_GLE();
           And=0;
+          for(int ct=0;ct<3003;ct++){
+            WN();
+            noise_new_method();
 
+          }
+          for(int ct=0;ct<1001;ct++){
+            cout<<noise_x[ct]<<endl;
 
+          }
         }
+
+
 
 
 //        find_forces_pbc();
@@ -491,6 +527,12 @@ find_neighbors_pbc();
 
 
     for(int t=1;t<=niter;t++){
+
+            if(t==1000){
+                for(int ct=0;ct<1001;ct++){
+                    cout<<noise_x[ct]<<endl;
+                }
+            }
 
             /**Termostato di Andersen**/
 
@@ -590,7 +632,7 @@ if (GLE==0){
 
             for(int na=0;na<num_atom;na++){
                         /** Noise**/
-                         find_noise();
+                         //find_noise();
 
 
                         /**Memory Kernel**/
@@ -608,14 +650,14 @@ if (GLE==0){
 
                     if(t>1){
 
-                    vx[na]=(vhlfx[na]+0.5*dt*inv_m*(force_x[na]-fDx+par_GLE*noise_x))*den;
-                    vy[na]=(vhlfy[na]+0.5*dt*inv_m*(force_y[na]-fDy+par_GLE*noise_y))*den;
-                    vz[na]=(vhlfz[na]+0.5*dt*inv_m*(force_z[na]-fDz+par_GLE*noise_z))*den;
+                    vx[na]=(vhlfx[na]+0.5*dt*inv_m*(force_x[na]-fDx+par_GLE*noise_x[na]))*den;
+                    vy[na]=(vhlfy[na]+0.5*dt*inv_m*(force_y[na]-fDy+par_GLE*noise_y[na]))*den;
+                    vz[na]=(vhlfz[na]+0.5*dt*inv_m*(force_z[na]-fDz+par_GLE*noise_z[na]))*den;
                     }
 
-                 vhlfx[na]=vx[na]+0.5*dt*inv_m*(force_x[na]-0.5*Kx[0]*vx[na]*dt-fDx+par_GLE*noise_x);
-                 vhlfy[na]=vy[na]+0.5*dt*inv_m*(force_y[na]-0.5*Ky[0]*vy[na]*dt-fDy+par_GLE*noise_y);
-                 vhlfz[na]=vz[na]+0.5*dt*inv_m*(force_z[na]-0.5*Kz[0]*vz[na]*dt-fDz+par_GLE*noise_z);
+                 vhlfx[na]=vx[na]+0.5*dt*inv_m*(force_x[na]-0.5*Kx[0]*vx[na]*dt-fDx+par_GLE*noise_x[na]);
+                 vhlfy[na]=vy[na]+0.5*dt*inv_m*(force_y[na]-0.5*Ky[0]*vy[na]*dt-fDy+par_GLE*noise_y[na]);
+                 vhlfz[na]=vz[na]+0.5*dt*inv_m*(force_z[na]-0.5*Kz[0]*vz[na]*dt-fDz+par_GLE*noise_z[na]);
 
                  rx[na]=rx[na]+vhlfx[na]*dt;
                  ry[na]=ry[na]+vhlfy[na]*dt;
@@ -624,6 +666,8 @@ if (GLE==0){
                        PBC(na);
 
            }
+           WN();
+           noise_new_method();
 
 }
 
@@ -684,7 +728,7 @@ if (GLE==0){
 //
 //
 //          volte_qui=volte_qui+1;
-//            Temp_media=Temp_media+Ti;
+            Temp_media=Temp_media+Ti;
 //            cout<< " Temperatura media istan="<<sum(T_med_ist,10)/min(10,volte_qui)<<endl;
 
 //if(volte_qui>=10){
