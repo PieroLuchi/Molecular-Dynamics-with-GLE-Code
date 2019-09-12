@@ -14,7 +14,7 @@ float dt=0.002;
 int niter=20000;
 
 float limit=0.8;
-int nstout=100;
+int nstout=500;
 int nstlist=20;
 
 // termostati
@@ -77,7 +77,7 @@ float R3;
 /*----GLE-------*/
 int GLE=1;
 float par_GLE=sqrt(kB*T*0.000001)*0.93;//sqrt(T*kB*0.000001/m);//0.4;//sqrt(kB*T)*5.5;//sqrt(2*kB*0.000001*T*m*0.86/dt);
-int M=300;
+int M=150;
 
         float fDx=0;
         float fDy=0;
@@ -87,24 +87,26 @@ int M=300;
         float noise_y=0;
         float noise_z=0;
 
-        float xi_x[300*1001];
-        float xi_y[300*1001];
-        float xi_z[300*1001];
+        float xi_x[150*1001];
+        float xi_y[150*1001];
+        float xi_z[150*1001];
 
-        float Kx[300];
-        float Ky[300];
-        float Kz[300];
+        float Kx[150];
+        float Ky[150];
+        float Kz[150];
 
-        float Lx[300];
-        float Ly[300];
-        float Lz[300];
+        float Lx[150];
+        float Ly[150];
+        float Lz[150];
 
-        float vx_mem[300*1001];
-        float vy_mem[300*1001];
-        float vz_mem[300*1001];
+        float vx_mem[150*1001];
+        float vy_mem[150*1001];
+        float vz_mem[150*1001];
 
 
 /*---------------------------------*/
+
+
 
 float uniformRandom(){
    //return rand() %10 +1;
@@ -116,21 +118,6 @@ float normalRandom(){
   float u1=uniformRandom();
   float u2=uniformRandom();
   return cos(8.*atan(1.)*u2)*sqrt(-2.*log(u1));
-}
-
-float andersen(){
-
-for(int part=0;part<num_atom;part++){
-    vhlfx[part]=normalRandom()*sqrt(kB*T/m*0.86)*0.001; //0.001 è per avere le velocità in nm/ps
-    vhlfy[part]=normalRandom()*sqrt(kB*T/m*0.86)*0.001;
-    vhlfz[part]=normalRandom()*sqrt(kB*T/m*0.86)*0.001;
-
-    vx[part]=vhlfx[part];
-    vy[part]=vhlfy[part];
-    vz[part]=vhlfz[part];
-
-}
-return 0;
 }
 
 void load_data(){
@@ -160,16 +147,12 @@ ifstream force("Ff_fm_NVE.txt");
 }
 
 void load_data_GLE(){
-        ifstream K_file("K6000_M300.txt");
-        ifstream L_file("L6000_M300.txt");
+        ifstream K_file("K6000_M150_gauss.txt");
+        ifstream L_file("L6000_M150_gauss.txt");
 
         for(int ct=0;ct<M;ct++){
             K_file>>Kx[ct]>>Ky[ct]>>Kz[ct];
             L_file>>Lx[ct]>>Ly[ct]>>Lz[ct];
-            xi_x[ct]=normalRandom();//*0.00013971;
-            xi_y[ct]=normalRandom();
-            xi_z[ct]=normalRandom();
-
         }
 
         for(int ct=0;ct<num_atom;ct++){
@@ -183,6 +166,21 @@ void load_data_GLE(){
         K_file.close();
         L_file.close();
 
+}
+
+float andersen(){
+
+for(int part=0;part<num_atom;part++){
+    vhlfx[part]=normalRandom()*sqrt(kB*T/m*0.86)*0.001; //0.001 è per avere le velocità in nm/ps
+    vhlfy[part]=normalRandom()*sqrt(kB*T/m*0.86)*0.001;
+    vhlfz[part]=normalRandom()*sqrt(kB*T/m*0.86)*0.001;
+
+    vx[part]=vhlfx[part];
+    vy[part]=vhlfy[part];
+    vz[part]=vhlfz[part];
+
+}
+return 0;
 }
 
 void find_neighbors_pbc(){
@@ -398,32 +396,6 @@ somma_vel=0;
     zeta_t=zeta_hlf_t+dt/(2*Q)*(Kin-magic*kB*T);
 }
 
-//void find_noise(){
-//    noise_x=0;
-//    noise_y=0;
-//    noise_z=0;
-//
-//   for(int s=0;s<M;s++){
-//    noise_x=noise_x+Lx[s]*xi_x[s];
-//    noise_y=noise_y+Ly[s]*xi_y[s];
-//    noise_z=noise_z+Lz[s]*xi_z[s];
-//   }
-//
-//   for(int s=M-1;s>0;s--){
-//    xi_x[s]=xi_x[s-1];
-//    xi_y[s]=xi_y[s-1];
-//    xi_z[s]=xi_z[s-1];
-//   }
-//   xi_x[0]=normalRandom();//*0.00013971;
-//   xi_y[0]=normalRandom();
-//   xi_z[0]=normalRandom();
-//
-//
-//
-//}
-
-
-
 float sum(float vett[],int leng){
   float somma=0;
     for(int i=0;i<leng;i++){
@@ -449,8 +421,11 @@ find_neighbors_pbc();
 
 /** Inizializzo seed generatore casuale*/
 srand(time(NULL));
+
+/**Inizializzo velocità**/
 andersen();
 cout << temperatura(vhlfx,vhlfy,vhlfz,kB,num_atom,m)<<endl;
+
 
 /** GLE**/
         if(GLE==1){
@@ -480,10 +455,16 @@ cout << temperatura(vhlfx,vhlfy,vhlfz,kB,num_atom,m)<<endl;
     ofstream veloc("veloc.txt");
     veloc << "vx     vy     vz"<<endl;
 
+
     for(int z=0;z<num_atom;z++){
         gro << rx[z]<< " " << ry[z]<<" "<<rz[z]<<endl;
         veloc << vx[z]<< " " << vx[z]<<" "<<vx[z]<<endl;
     }
+
+    remove("Temp_data.txt");
+    ofstream Temp_data("Temp_data.txt");
+
+    Temp_data<< " Temperatura"<<endl;
 
 
 /**INTEGRAZIONE EQUAZIONI DEL MOTO*/
@@ -607,24 +588,17 @@ if (GLE==0){
     float denz=1/(1+Kz[0]*dt*dt*0.25*inv_m);
 
             for(int na=0;na<num_atom;na++){
-                        /** Noise**/
-                            //find_noise();
-                             noise_x=0;
-                             noise_y=0;
-                             noise_z=0;
-//                                for(int jj=1; jj<min(M,t-1);jj++){
-//                                     int ll=(jj-1)*num_atom;
-//
-//                                        noise_x=noise_x+Lx[jj]*xi_x[na+ll];
-//                                        noise_y=noise_y+Ly[jj]*xi_y[na+ll];
-//                                        noise_z=noise_z+Lz[jj]*xi_z[na+ll];
-//                                }
 
 
-                        /**Memory Kernel**/
-                            fDx=0;
-                            fDy=0;
-                            fDz=0;
+                        /**Memory Kernel e Colored Noise**/
+
+                          fDx=0;
+                          fDy=0;
+                          fDz=0;
+                          noise_x=0;
+                          noise_y=0;
+                          noise_z=0;
+
                                 for(int jj=1; jj<min(M,t-1);jj++){
                                      int ll=(jj-1)*num_atom;
 
@@ -707,36 +681,27 @@ if (GLE==0){
     /** Write data on txt file and display informations**/
       if (count_nstout==nstout){
 
+            cout<<"Time step="<<t<<endl;
+
           for(int z=0;z<num_atom;z++){
                 gro << rx[z]<< " " << ry[z]<<" "<<rz[z]<<endl;
                 veloc << vx[z]<< " " << vy[z]<<" "<<vz[z]<<endl;
             }
 
+
+
             Ti=temperatura(vhlfx,vhlfy,vhlfz,kB,num_atom,m);
             cout<<"Temperatura istantanea=" << Ti<<endl;
+            Temp_data << Ti<<endl;
 
 
-//            for(int s=10-1;s>0;s--){
-//                T_med_ist[s]=T_med_ist[s-1];
-//               }
-//               T_med_ist[0]=Ti;
+//          volte_qui=volte_qui+1;
+//           Temp_media=Temp_media+Ti;
 //
+//           cout<< " Temperatura media ="<<Temp_media/volte_qui<<endl;
 //
-          volte_qui=volte_qui+1;
-           Temp_media=Temp_media+Ti;
-
-           cout<< " Temperatura media ="<<Temp_media/volte_qui<<endl;
 
 
-//if(volte_qui>=10){
-//                  float modifica=-0.0005*(Temp_media/volte_qui-T);
-//                  cout<<modifica<<endl;
-//                  par_GLE=par_GLE+modifica;
-//                  cout<<par_GLE<<endl;
-//}
-
-
-          cout<<"Time step="<<t<<endl;
           count_nstout=0;
 
        }
