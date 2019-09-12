@@ -11,10 +11,10 @@ using namespace std;
 // VARIABILI GLOBALI
 
 float dt=0.002;
-int niter=10000;
+int niter=20000;
 
 float limit=0.8;
-int nstout=500;
+int nstout=100;
 int nstlist=20;
 
 // termostati
@@ -58,7 +58,7 @@ float vhlfz[1001];
 
 int index_vicini[1001];
 int num_vicini[1001];
-int vicini[150*1001];
+int vicini[140*1001];
 
 float force_x[1001];
 float force_y[1001];
@@ -76,7 +76,7 @@ float R3;
 
 /*----GLE-------*/
 int GLE=1;
-float par_GLE=sqrt(kB*T*0.000001);//sqrt(T*kB*0.000001/m);//0.4;//sqrt(kB*T)*5.5;//sqrt(2*kB*0.000001*T*m*0.86/dt);
+float par_GLE=sqrt(kB*T*0.000001)*0.93;//sqrt(T*kB*0.000001/m);//0.4;//sqrt(kB*T)*5.5;//sqrt(2*kB*0.000001*T*m*0.86/dt);
 int M=300;
 
         float fDx=0;
@@ -160,8 +160,8 @@ ifstream force("Ff_fm_NVE.txt");
 }
 
 void load_data_GLE(){
-        ifstream K_file("K750_M300.txt");
-        ifstream L_file("L750_M300.txt");
+        ifstream K_file("K6000_M300.txt");
+        ifstream L_file("L6000_M300.txt");
 
         for(int ct=0;ct<M;ct++){
             K_file>>Kx[ct]>>Ky[ct]>>Kz[ct];
@@ -490,8 +490,6 @@ cout << temperatura(vhlfx,vhlfy,vhlfz,kB,num_atom,m)<<endl;
 
     /*contatori vari*/
 
-    int volte_qui=0;
-    float T_med_ist[10]={0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
     float inv_dt=1.0/dt;
     float inv_m=1.0/m;
@@ -501,7 +499,9 @@ cout << temperatura(vhlfx,vhlfy,vhlfz,kB,num_atom,m)<<endl;
         int count_nstout=1;
 
         float Ti;
+        int volte_qui=0;
         float  Temp_media=0;
+
 
         cout<<"begin"<<endl;
 
@@ -724,7 +724,9 @@ if (GLE==0){
 //
           volte_qui=volte_qui+1;
            Temp_media=Temp_media+Ti;
+
            cout<< " Temperatura media ="<<Temp_media/volte_qui<<endl;
+
 
 //if(volte_qui>=10){
 //                  float modifica=-0.0005*(Temp_media/volte_qui-T);
