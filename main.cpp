@@ -11,7 +11,8 @@ using namespace std;
 // VARIABILI GLOBALI
 
 float dt=0.002;
-int niter=20000;
+int niter=1750;
+int VAF=1;
 
 float limit=0.8;
 int nstout=500;
@@ -19,9 +20,9 @@ int nstlist=20;
 
 // termostati
 
-int And=10500; //ogni quanti passi applicare andersen
+int And=0; //ogni quanti passi applicare andersen
 
-int NH=1; //numero di passi iniziali in cui applicare il Nose_Hoover per termalizzare
+int NH=0; //numero di passi iniziali in cui applicare il Nose_Hoover per termalizzare
 float zeta_t=0;
 float zeta_hlf_t=0;
 float Q=2000;
@@ -76,8 +77,8 @@ float R3;
 
 /*----GLE-------*/
 int GLE=1;
-float par_GLE=sqrt(kB*T*0.000001)*0.93;//sqrt(T*kB*0.000001/m);//0.4;//sqrt(kB*T)*5.5;//sqrt(2*kB*0.000001*T*m*0.86/dt);
-int M=150;
+float par_GLE=sqrt(kB*T*0.000001)*0.94;//per multi *0.937; //per hybr *0.935;
+int M=400;
 
         float fDx=0;
         float fDy=0;
@@ -87,21 +88,21 @@ int M=150;
         float noise_y=0;
         float noise_z=0;
 
-        float xi_x[150*1001];
-        float xi_y[150*1001];
-        float xi_z[150*1001];
+        float xi_x[400*1001];
+        float xi_y[400*1001];
+        float xi_z[400*1001];
 
-        float Kx[150];
-        float Ky[150];
-        float Kz[150];
+        float Kx[400];
+        float Ky[400];
+        float Kz[400];
 
-        float Lx[150];
-        float Ly[150];
-        float Lz[150];
+        float Lx[400];
+        float Ly[400];
+        float Lz[400];
 
-        float vx_mem[150*1001];
-        float vy_mem[150*1001];
-        float vz_mem[150*1001];
+        float vx_mem[400*1001];
+        float vy_mem[400*1001];
+        float vz_mem[400*1001];
 
 
 /*---------------------------------*/
@@ -147,8 +148,8 @@ ifstream force("Ff_fm_NVE.txt");
 }
 
 void load_data_GLE(){
-        ifstream K_file("K6000_M150_gauss.txt");
-        ifstream L_file("L6000_M150_gauss.txt");
+        ifstream K_file("K.txt");
+        ifstream L_file("L.txt");
 
         for(int ct=0;ct<M;ct++){
             K_file>>Kx[ct]>>Ky[ct]>>Kz[ct];
@@ -413,17 +414,14 @@ int main()
 
 
 
-
-
-
 /** INIZIALIZZO VICINI**/
 find_neighbors_pbc();
 
 /** Inizializzo seed generatore casuale*/
 srand(time(NULL));
-
+//andersen();
 /**Inizializzo velocità**/
-andersen();
+//andersen();
 cout << temperatura(vhlfx,vhlfy,vhlfz,kB,num_atom,m)<<endl;
 
 
@@ -432,8 +430,8 @@ cout << temperatura(vhlfx,vhlfy,vhlfz,kB,num_atom,m)<<endl;
           load_data_GLE();
           And=0;
          cout << par_GLE <<endl;
-
-
+cout << Kx[0] << " "<<Ky[0]<<" " <<Kz[0]<<endl;
+cout << Lx[0] << " "<<Ly[0]<<" " <<Lz[0]<<endl;
         }
 
 
@@ -488,6 +486,16 @@ cout << temperatura(vhlfx,vhlfy,vhlfz,kB,num_atom,m)<<endl;
 
 
     for(int t=1;t<=niter;t++){
+
+        if(VAF==1){
+            if(t<1001){
+                nstout=1000;
+            }
+
+            if(t==1001){
+                nstout=1;
+            }
+        }
 
             /**Termostato di Andersen**/
 
@@ -696,7 +704,7 @@ if (GLE==0){
 
 
 //          volte_qui=volte_qui+1;
-//           Temp_media=Temp_media+Ti;
+          Temp_media=Temp_media+Ti;
 //
 //           cout<< " Temperatura media ="<<Temp_media/volte_qui<<endl;
 //
@@ -716,4 +724,5 @@ if (GLE==0){
     }
 
 cout<< "TEMPERATURA MEDIA="<<Temp_media/niter*nstout;
+cout << "FINE"<<endl;
 }
