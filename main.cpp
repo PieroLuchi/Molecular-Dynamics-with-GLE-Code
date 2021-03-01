@@ -11,11 +11,11 @@ using namespace std;
 // VARIABILI GLOBALI
 
 float dt=0.002;
-int niter=1750;
+int niter=1750; //1750;
 int VAF=1;
 
 float limit=0.8;
-int nstout=500;
+int nstout=50;
 int nstlist=20;
 
 // termostati
@@ -28,7 +28,7 @@ float zeta_hlf_t=0;
 float Q=2000;
 
 
-float bound_up=3.11320;
+float bound_up=3.11587;//3.11320;
 float bound_down=0;
 
 int num_atom=1001;
@@ -38,7 +38,8 @@ float m = 18.0153*0.001; //% [kg/mol] massa CG bead di acqua
 int T=298; // K
 float kB=0.0083144621*1000;//*0.000001; //  J/(mol K)
 
-float vbolt= 2/sqrt(3.14)*sqrt(2*kB*T/m);
+
+float vbolt= 2/sqrt(3.14)*sqrt(2*kB*0.000001*T/m);
 float  vxbolt=vbolt/sqrt(3);
 
 
@@ -77,8 +78,9 @@ float R3;
 
 /*----GLE-------*/
 int GLE=1;
-float par_GLE=sqrt(kB*T*0.000001)*0.94;//per multi *0.937; //per hybr *0.935;
-int M=400;
+float par_GLE=sqrt(kB*T*0.000001)*1.45;//0.94;//per multi *0.937; //per hybr *0.935;
+float par_GLE_k=1;
+int M=500;
 
         float fDx=0;
         float fDy=0;
@@ -88,21 +90,21 @@ int M=400;
         float noise_y=0;
         float noise_z=0;
 
-        float xi_x[400*1001];
-        float xi_y[400*1001];
-        float xi_z[400*1001];
+        float xi_x[500*1001];
+        float xi_y[500*1001];
+        float xi_z[500*1001];
 
-        float Kx[400];
-        float Ky[400];
-        float Kz[400];
+        float Kx[500];
+        float Ky[500];
+        float Kz[500];
 
-        float Lx[400];
-        float Ly[400];
-        float Lz[400];
+        float Lx[500];
+        float Ly[500];
+        float Lz[500];
 
-        float vx_mem[400*1001];
-        float vy_mem[400*1001];
-        float vz_mem[400*1001];
+        float vx_mem[500*1001];
+        float vy_mem[500*1001];
+        float vz_mem[500*1001];
 
 
 /*---------------------------------*/
@@ -123,7 +125,7 @@ float normalRandom(){
 
 void load_data(){
 ifstream IC("IC.txt");
-ifstream force("Ff_fm_NVE.txt");
+ifstream force("Ff_ibi_NVE.txt");
 
 
     for(int ct=0;ct<num_atom;ct++){
@@ -357,8 +359,8 @@ void HWBC(int na){
 
 float temperatura(float vx[729],float vy[729],float vz[729],float kB, int num_atom,float m){
 
-float magic = num_atom*vbolt*vbolt*m/2/(kB*T);
-
+//float magic = num_atom*vbolt*vbolt*m/2/(kB*0.000001*T)*1000*1000;
+float DOF=num_atom*3-3
 float somma_vel=0;
 
 
@@ -372,7 +374,7 @@ float somma_vel=0;
 
 
 
-   float Ti=Kin/(magic*kB);
+   float Ti=Kin/(DOF*kB);
 
    return Ti;
 
@@ -647,6 +649,7 @@ if (GLE==0){
 
 
                     for(int ct=(num_atom*M)-1; ct>=num_atom;ct--){
+
                        vx_mem[ct]=vx_mem[ct-num_atom];
                        vy_mem[ct]=vy_mem[ct-num_atom];
                        vz_mem[ct]=vz_mem[ct-num_atom];

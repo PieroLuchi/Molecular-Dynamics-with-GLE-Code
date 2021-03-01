@@ -70,11 +70,13 @@ ERRORE_TEMP = std(T)/sqrt(length(T))
 load('VAF_atomistic')
   figure
   plot(0:dt*nstout:(tempo_max-1)*dt*nstout,[VAF' VAF_atomistic])
+  hold on
+  %plot(0:dt*nstout:(400-1)*dt*nstout,[Kx./Kx(1)])
   title('3D velocity Autocorr Function')
   xlabel('time [ps]')
   %% salva VAF
-     %save('C:\Users\piero\Dropbox\AA Collaborazione\Memory Kernel Opt\Data\VAF_multi_mem_norm_s2_down','VAF')
+save('C:\Users\piero\Dropbox\AA Collaborazione\Codice Ottimizz Kernel TNL Finale\Prod Grafici\VAF_s2','VAF')
  
-  
+  %[Kx Ky Kz]=textread("K.txt",' %f %f %f ',400,'headerlines',0);
 
   
