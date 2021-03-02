@@ -21,6 +21,7 @@ int nstlist=20;
 // termostati
 
 int And=0; //ogni quanti passi applicare andersen
+int And_pre=500;// per quanti passi iniziali applicare andersen
 
 int NH=0; //numero di passi iniziali in cui applicare il Nose_Hoover per termalizzare
 float zeta_t=0;
@@ -78,7 +79,7 @@ float R3;
 
 /*----GLE-------*/
 int GLE=1;
-float par_GLE=sqrt(kB*T*0.000001)*1.45;//0.94;//per multi *0.937; //per hybr *0.935;
+float par_GLE=sqrt(2*kB*T*0.000001)*1.02;//0.94;//per multi *0.937; //per hybr *0.935;
 float par_GLE_k=1;
 int M=500;
 
@@ -174,9 +175,9 @@ void load_data_GLE(){
 float andersen(){
 
 for(int part=0;part<num_atom;part++){
-    vhlfx[part]=normalRandom()*sqrt(kB*T/m*0.86)*0.001; //0.001 è per avere le velocità in nm/ps
-    vhlfy[part]=normalRandom()*sqrt(kB*T/m*0.86)*0.001;
-    vhlfz[part]=normalRandom()*sqrt(kB*T/m*0.86)*0.001;
+    vhlfx[part]=normalRandom()*sqrt(kB*T/m)*0.001; //0.001 è per avere le velocità in nm/ps
+    vhlfy[part]=normalRandom()*sqrt(kB*T/m)*0.001;
+    vhlfz[part]=normalRandom()*sqrt(kB*T/m)*0.001;
 
     vx[part]=vhlfx[part];
     vy[part]=vhlfy[part];
@@ -360,7 +361,7 @@ void HWBC(int na){
 float temperatura(float vx[729],float vy[729],float vz[729],float kB, int num_atom,float m){
 
 //float magic = num_atom*vbolt*vbolt*m/2/(kB*0.000001*T)*1000*1000;
-float DOF=num_atom*3-3
+float DOF=num_atom*3-3;
 float somma_vel=0;
 
 
@@ -423,7 +424,7 @@ find_neighbors_pbc();
 srand(time(NULL));
 //andersen();
 /**Inizializzo velocità**/
-//andersen();
+andersen();
 cout << temperatura(vhlfx,vhlfy,vhlfz,kB,num_atom,m)<<endl;
 
 
@@ -519,10 +520,17 @@ cout << Lx[0] << " "<<Ly[0]<<" " <<Lz[0]<<endl;
 
                  find_forces_pbc();
 
+             /** Termostato Andersen**/
+                 if(t<And_pre ){
+                 andersen();
+
+                 }
+
 
 
                  /** Termostato Nose-Hoover**/
                  if(t<NH ){
+                 andersen();
                  int_zeta();
                  }
 
@@ -612,9 +620,9 @@ if (GLE==0){
                                 for(int jj=1; jj<min(M,t-1);jj++){
                                      int ll=(jj-1)*num_atom;
 
-                                        fDx=fDx+dt*Kx[jj]*vx_mem[na+ll];
-                                        fDy=fDy+dt*Ky[jj]*vy_mem[na+ll];
-                                        fDz=fDz+dt*Kz[jj]*vz_mem[na+ll];
+                                        fDx=fDx+dt*Kx[jj]*vx_mem[na+ll]*par_GLE_k;
+                                        fDy=fDy+dt*Ky[jj]*vy_mem[na+ll]*par_GLE_k;
+                                        fDz=fDz+dt*Kz[jj]*vz_mem[na+ll]*par_GLE_k;
 
                                         noise_x=noise_x+Lx[jj]*xi_x[na+ll];
                                         noise_y=noise_y+Ly[jj]*xi_y[na+ll];
@@ -637,6 +645,15 @@ if (GLE==0){
                  rx[na]=rx[na]+vhlfx[na]*dt;
                  ry[na]=ry[na]+vhlfy[na]*dt;
                  rz[na]=rz[na]+vhlfz[na]*dt;
+
+//                    vx[na]=vx[na]+dt*inv_m*(force_x[na]-0.5*Kx[0]*vx[na]*dt-fDx+par_GLE*noise_x);
+//                    vy[na]=vy[na]+dt*inv_m*(force_y[na]-0.5*Ky[0]*vy[na]*dt-fDy+par_GLE*noise_y);
+//                    vz[na]=vz[na]+dt*inv_m*(force_z[na]-0.5*Kz[0]*vz[na]*dt-fDz+par_GLE*noise_z);
+//
+//                    rx[na]=rx[na]+vx[na]*dt;
+//                    ry[na]=ry[na]+vy[na]*dt;
+//                    rz[na]=rz[na]+vz[na]*dt;
+
 
                        PBC(na);
 

@@ -57,7 +57,7 @@ end
 % Second stage: fix functional form with optimizeed local
 %               parameters (b(t) function)
 %               
-
+D_par=10
 %% STAGE 1
 figure
 % prepare parameters vector
@@ -80,7 +80,7 @@ for k=1:3
 
     %Minimization parameters:--------
         % constraint-----------------
-        elem=kB*T/((D)*3);
+        elem=kB*T/((D)*D_par);
         %equality constraint ceq=0
         ceq=@(P) [sum(K([P])*dt)-elem];
         %inequality constraint c<=0
@@ -100,7 +100,7 @@ for k=1:3
     % minimization:
        par_s1(k,:)=fmincon(Sigma,x0,A,b,Aeq,beq,lb,ub,nonlincon)
        Kcontrol=K(par_s1(k,1:end));
-        if Kcontrol(end-10)>0.01
+        if Kcontrol(end-40)>0.01
             break
         end
     
@@ -147,7 +147,7 @@ for k=1:3
 
     %Minimization parameters:---------------
         % constraint------------------------
-        elem=kB*T/((D)*3)
+        elem=kB*T/((D)*D_par)
         ceq=@(P)[sum(K([P])*dt)-elem]
 
         c=@(P) [sqrt(sum((K([P])).^2))-lambda;...
@@ -205,8 +205,7 @@ Kottim=[K(par_s2(1,:))' K(par_s2(1,:))' K(par_s2(1,:))'];
 if Kottim(125)<=0.04
     M=125
     K=Kottim(1:M,:);
-end
-if Kottim(100)<=0.01
+elseif Kottim(100)<=0.01
     M=100
     K=Kottim(1:M,:);
 
@@ -239,11 +238,12 @@ diff_cond=0.05; % stop condition to avoid oscillatory non convergent resutls
 [L1]=Opt_Noise_par(K(1:M,1),M,1,stop_cond,diff_cond);
 fprintf('L1 done \n')
 % I use L1 as initial guess here to faster convergence
-[L2]=Opt_Noise_par(K(1:M,2),M,L1,stop_cond,diff_cond);
-fprintf('L2 fatto \n')
-[L3]=Opt_Noise_par(K(1:M,3),M,L1,stop_cond,diff_cond);
-fprintf('L3 fatto \n')
-
+% [L2]=Opt_Noise_par(K(1:M,2),M,L1,stop_cond,diff_cond);
+% fprintf('L2 fatto \n')
+% [L3]=Opt_Noise_par(K(1:M,3),M,L1,stop_cond,diff_cond);
+% fprintf('L3 fatto \n')
+L2=L1
+L3=L1
 
 %% Enhance Kenrel and Noise
 
@@ -372,10 +372,10 @@ save('L_ottim_extended','L')
 %save in a coustomized directory the txt file for K and L to be used in the
 %simulation with the GLE solver
 fprintf('salvati in MD \n')
-fileID = fopen('D:\Git Repositories\Molecular-Dynamics-with-GLE-Code\K.txt','w');
+fileID = fopen('..\K.txt','w');
 fprintf(fileID,'%.16f %24.16f %24.16f\n',K');
 fclose(fileID);
 
-fileID = fopen('D:\Git Repositories\Molecular-Dynamics-with-GLE-Code\L.txt','w');
+fileID = fopen('..\L.txt','w');
 fprintf(fileID,'%.16f %24.16f %24.16f\n',L');
 fclose(fileID);

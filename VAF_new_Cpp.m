@@ -75,7 +75,7 @@ load('VAF_atomistic')
   title('3D velocity Autocorr Function')
   xlabel('time [ps]')
   %% salva VAF
-save('C:\Users\piero\Dropbox\AA Collaborazione\Codice Ottimizz Kernel TNL Finale\Prod Grafici\VAF_s2','VAF')
+%save('C:\Users\piero\Dropbox\AA Collaborazione\Codice Ottimizz Kernel TNL Finale\Prod Grafici\VAF_s2','VAF')
  
   %[Kx Ky Kz]=textread("K.txt",' %f %f %f ',400,'headerlines',0);
 
