@@ -57,7 +57,7 @@ end
 % Second stage: fix functional form with optimizeed local
 %               parameters (b(t) function)
 %               
-D_par=10
+D_par=3
 %% STAGE 1
 figure
 % prepare parameters vector
@@ -73,7 +73,7 @@ K=@(P) P(1)*exp(-P(2)*t.^2);
 for k=1:3
     % optimization needed to make the kernel to cover all the
     % time dt*M it covers
-    for g=1:10
+    for g=1:30
         
     %Define the lagrangian action
     Sigma=@(P) -dt^3*Gamma_s(k,:)*K([P])';
@@ -95,12 +95,12 @@ for k=1:3
         Aeq = [];
         beq = [];
         lb =  [ 0 0  ]; %lower bound for the values
-        ub = [1.1-0.1*g 100]; %upper bound for the values
+        ub = [1.1-0.05*g 100]; %upper bound for the values
         %---------------------
     % minimization:
        par_s1(k,:)=fmincon(Sigma,x0,A,b,Aeq,beq,lb,ub,nonlincon)
        Kcontrol=K(par_s1(k,1:end));
-        if Kcontrol(end-40)>0.01
+        if Kcontrol(end-30)>0.01
             break
         end
     

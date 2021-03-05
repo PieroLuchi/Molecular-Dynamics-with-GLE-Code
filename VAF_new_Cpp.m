@@ -9,8 +9,8 @@ L=bound_up;
 
 %% carico dati
 %scelgo quanti frame iniziali salatare  
-  f=num_atom*250;
-  g=num_atom*1000;
+  f=num_atom*1000;
+  g=num_atom*4000;
   
    head=1;
    [x y z]=textread("veloc.txt",' %f %f %f ',g,'headerlines',head);
@@ -59,7 +59,7 @@ T=textread("Temp_data.txt",' %f ',1000,'headerlines',2);
 
 
 
-TEMP_MEDIA=mean(T(10:end))
+TEMP_MEDIA=mean(T(20:end))
 
 ERRORE_TEMP = std(T)/sqrt(length(T)) 
   
@@ -75,7 +75,7 @@ load('VAF_atomistic')
   title('3D velocity Autocorr Function')
   xlabel('time [ps]')
   %% salva VAF
-%save('C:\Users\piero\Dropbox\AA Collaborazione\Codice Ottimizz Kernel TNL Finale\Prod Grafici\VAF_s2','VAF')
+%save('C:\Users\piero\Dropbox\AA Collaborazione\Codice Ottimizz Kernel TNL Finale\Prod Grafici\VAF_s1','VAF')
  
   %[Kx Ky Kz]=textread("K.txt",' %f %f %f ',400,'headerlines',0);
 

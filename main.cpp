@@ -11,7 +11,7 @@ using namespace std;
 // VARIABILI GLOBALI
 
 float dt=0.002;
-int niter=1750; //1750;
+int niter=4000; //1750;
 int VAF=1;
 
 float limit=0.8;
@@ -71,7 +71,7 @@ float force_z[1001];
 int LD=0;
 float gammas=0.8;
 
-float par_LE= sqrt(2*kB*0.000001*T*m*gammas*0.86/dt);
+float par_LE= sqrt(2*kB*0.000001*T*m*gammas*2/dt);
 float R1;
 float R2;
 float R3;
@@ -79,7 +79,7 @@ float R3;
 
 /*----GLE-------*/
 int GLE=1;
-float par_GLE=sqrt(2*kB*T*0.000001)*1.02;//0.94;//per multi *0.937; //per hybr *0.935;
+float par_GLE=sqrt(2*kB*T*0.000001)*1.01;//0.94;//per multi *0.937; //per hybr *0.935;
 float par_GLE_k=1;
 int M=500;
 
@@ -175,9 +175,9 @@ void load_data_GLE(){
 float andersen(){
 
 for(int part=0;part<num_atom;part++){
-    vhlfx[part]=normalRandom()*sqrt(kB*T/m)*0.001; //0.001 è per avere le velocità in nm/ps
-    vhlfy[part]=normalRandom()*sqrt(kB*T/m)*0.001;
-    vhlfz[part]=normalRandom()*sqrt(kB*T/m)*0.001;
+    vhlfx[part]=normalRandom()*sqrt(kB*T/m*2)*0.001; //0.001 è per avere le velocità in nm/ps
+    vhlfy[part]=normalRandom()*sqrt(kB*T/m*2)*0.001;
+    vhlfz[part]=normalRandom()*sqrt(kB*T/m*2)*0.001;
 
     vx[part]=vhlfx[part];
     vy[part]=vhlfy[part];
@@ -491,11 +491,11 @@ cout << Lx[0] << " "<<Ly[0]<<" " <<Lz[0]<<endl;
     for(int t=1;t<=niter;t++){
 
         if(VAF==1){
-            if(t<1001){
-                nstout=1000;
+            if(t<2001){
+                nstout=2000;
             }
 
-            if(t==1001){
+            if(t==2001){
                 nstout=1;
             }
         }
@@ -594,6 +594,9 @@ if (GLE==0){
                     rx[na]=rx[na]+vhlfx[na]*dt;
                     ry[na]=ry[na]+vhlfy[na]*dt;
                     rz[na]=rz[na]+vhlfz[na]*dt;
+
+
+
 
                        PBC(na);
                  }
